@@ -1,0 +1,69 @@
+# official doc: https://prometheus.io/docs/alerting/latest/configuration/
+
+
+######################################
+# REST API call to OBM
+######################################
+curl --include \
+     --request POST \
+     --header "Content-Type: application/xml" \
+     --data-binary "<issue>
+    <project_id>1</project_id>
+    <status_id>1</status_id>
+    <assigned_to_id>5</assigned_to_id>
+    <subject>${json_2_0_labels_alertname} - ${json_2_0_labels_service}</subject>
+    <description>
+        ${json_5_description}
+    </description>
+</issue>" \
+'http://www.easyredmine.com/issues.xml'
+
+######################################
+# example: https://www.reddit.com/r/devops/comments/gn83j6/custom_prometheus_webhook_alert_to_api/
+######################################
+
+receivers:
+  - name: jenkins_prometheus_webook_ticket
+    webhook_configs:
+      - url: 'http://jenkins:8080/generic-webhook-trigger/invoke?token=mySecureToken'
+
+
+route:
+<...>
+  routes:
+  - receiver: 'jenkins_prometheus_webook_ticket'
+    repeat_interval: 12h
+    continue: true
+    <...your config there...>
+
+######################################
+# example: https://coralogix.com/docs/prometheus-alertmanager/
+######################################
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  repeat_interval: 1h
+  receiver: OBM
+
+receivers:
+  name: OBM
+  webhook_configs:
+    - url: <rest api endpoint url>
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+  - target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
+
+######################################
+# example: https://docs.ilert.com/integrations/prometheus
+######################################
+
+# send a test alert
+curl -d '[{"labels":{"Alertname":"iLert Test"},"annotations":{"summary":"iLert Test"}}]' http://localhost:9093/api/v1/alerts
